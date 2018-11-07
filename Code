@@ -1,0 +1,135 @@
+if(!require(devtools)) install.packages("devtools")
+devtools::install_github("kassambara/factoextra")
+
+
+
+Data2017 <- read_xlsx("C:/Users/Brian/Desktop/BAN 888/Historical Data.xlsx", sheet = 2, col_names = TRUE)
+Data2016 <- read_xlsx("C:/Users/Brian/Desktop/BAN 888/Historical Data.xlsx", sheet = 3, col_names = TRUE)
+Data2015 <- read_xlsx("C:/Users/Brian/Desktop/BAN 888/Historical Data.xlsx", sheet = 4, col_names = TRUE)
+Data2014 <- read_xlsx("C:/Users/Brian/Desktop/BAN 888/Historical Data.xlsx", sheet = 5, col_names = TRUE)
+
+
+
+Data2017 <- setNames(Data2017, c("State17","ResCost17", "PropTax17", "CorpTax17", "SalesTax17", "Unemploy17", "Sun17", "Diesel17"))
+Data2016 <- setNames(Data2016, c("State16","ResCost16", "PropTax16", "CorpTax16", "SalesTax16", "Unemploy16", "Sun16", "Diesel16"))
+Data2015 <- setNames(Data2015, c("State15","ResCost15", "PropTax15", "CorpTax15", "SalesTax15", "Unemploy15", "Sun15", "Diesel15"))
+Data2014 <- setNames(Data2014, c("State14","ResCost14", "PropTax14", "CorpTax14", "SalesTax14", "Unemploy14", "Sun14", "Diesel14"))
+
+Data2017 <- Data2017[order(Data2017$State17),]
+Data2016 <- Data2016[order(Data2016$State16),]
+Data2015 <- Data2015[order(Data2015$State15),]
+Data2014 <- Data2014[order(Data2014$State14),]
+
+HistData <- cbind(Data2017, Data2016[,-1], Data2015[,-1], Data2014[,-1])
+colnames(HistData)[1] <- "State"
+rownames(HistData) <- HistData[,1]
+HistData <- HistData[,-1]
+HistData2 <- scale(HistData)
+head(HistData2)
+
+install.packages("factoextra")
+library(factoextra)
+
+
+
+
+HistHier <- eclust(HistData2, "hclust", k = 5, method = "ward.D2", graph = FALSE)
+HistHierGrp <- HistHier$cluster
+
+head(HistHierGrp, 15)
+
+HistHierCenters <- aggregate(HistData2, list(HistHierGrp), mean)
+HistHierCenters
+
+HistHierCenters <- HistHierCenters[,-1]
+HistHierCenters
+
+Histkmean <- eclust(HistData2, "kmeans", k = HistHierCenters, graph = FALSE)
+str(Histkmean)
+HistkmeanGrp <- Histkmean$cluster
+Histdata.2 <- cbind(HistData, Cluster = Histkmean$cluster)
+head(Histdata.2)
+
+
+
+HistKmeansCenters <- aggregate(HistData, list(HistkmeanGrp), mean)
+rownames(HistKmeansCenters) <- HistKmeansCenters[,1]
+HistKmeansCenters <- HistKmeansCenters[,-1]
+head(HistKmeansCenters)
+
+head(HistKmeansCenters$ResCost17)
+
+Histdata.3 <- as.data.frame(cbind(ResCost = ((Histdata.2$ResCost17 + Histdata.2$ResCost16 + Histdata.2$ResCost15 + Histdata.2$ResCost14)/4), 
+                                 PropTax = ((Histdata.2$PropTax17 + Histdata.2$PropTax16 + Histdata.2$PropTax15+Histdata.2$PropTax14)/4), 
+                                 CorpTax = ((Histdata.2$CorpTax17+Histdata.2$CorpTax16+Histdata.2$CorpTax15+Histdata.2$CorpTax14)/4),
+                                 SalesTax = ((Histdata.2$SalesTax17+Histdata.2$SalesTax16+Histdata.2$SalesTax15+Histdata.2$SalesTax14)/4),
+                                 Unemploy = ((Histdata.2$Unemploy17+Histdata.2$Unemploy16+Histdata.2$Unemploy15+Histdata.2$Unemploy14)/4),
+                                 Sun = ((Histdata.2$Sun17+Histdata.2$Sun16+Histdata.2$SalesTax15+Histdata.2$Sun14)/4),
+                                 Diesel = ((Histdata.2$Diesel17+Histdata.2$Diesel16+Histdata.2$Diesel15+Histdata.2$Diesel14)/4),
+                                 Cluster = Histdata.2$Cluster))
+
+
+FinalData <- as.data.frame(cbind(ResCost = ((HistKmeansCenters$ResCost17 + HistKmeansCenters$ResCost16 + HistKmeansCenters$ResCost15 + HistKmeansCenters$ResCost14)/4), 
+                    PropTax = ((HistKmeansCenters$PropTax17 + HistKmeansCenters$PropTax16 + HistKmeansCenters$PropTax15+HistKmeansCenters$PropTax14)/4), 
+                    CorpTax = ((HistKmeansCenters$CorpTax17+HistKmeansCenters$CorpTax16+HistKmeansCenters$CorpTax15+HistKmeansCenters$CorpTax14)/4),
+                    SalesTax = ((HistKmeansCenters$SalesTax17+HistKmeansCenters$SalesTax16+HistKmeansCenters$SalesTax15+HistKmeansCenters$SalesTax14)/4),
+                    Unemploy = ((HistKmeansCenters$Unemploy17+HistKmeansCenters$Unemploy16+HistKmeansCenters$Unemploy15+HistKmeansCenters$Unemploy14)/4),
+                    Sun = ((HistKmeansCenters$Sun17+HistKmeansCenters$Sun16+HistKmeansCenters$SalesTax15+HistKmeansCenters$Sun14)/4),
+                    Diesel = ((HistKmeansCenters$Diesel17+HistKmeansCenters$Diesel16+HistKmeansCenters$Diesel15+HistKmeansCenters$Diesel14)/4)))
+
+
+
+SunRank <- 8
+ResRank <- 7
+DieselRank <- 6
+PropTaxRank <- 5
+CorpTaxRank <- 4
+SalesTaxRank <- 3
+UnemployRank <- 2
+
+FinalData$Rank <- FinalData$ResCost*ResRank + 
+                    FinalData$PropTax * -PropTaxRank + 
+                    FinalData$CorpTax * - CorpTaxRank +
+                    FinalData$SalesTax * -SalesTaxRank +
+                    FinalData$Unemploy * -UnemployRank +
+                    FinalData$Sun * SunRank +
+                    FinalData$Diesel * DieselRank
+
+head(FinalData)
+max(FinalData$Rank)
+
+
+
+library(tidyr)
+library(ggplot2)
+
+
+  
+
+Data2018 <- as.data.frame(read_xlsx("C:/Users/Brian/Desktop/BAN 888/Historical Data.xlsx", sheet = 1, col_names = TRUE))
+Data2018 <- setNames(Data2018, c("State","ResCost", "PropTax", "CorpTax", "SalesTax", "Unemploy", "Sun", "Diesel"))
+
+colnames(Data2018)[1] <- "State"
+rownames(Data2018) <- Data2018[,1]
+Data2018 <- Data2018[,-1]
+Data2018 <- cbind(Data2018, Cluster = Histdata.3$Cluster)
+as.factor((Data2018$Cluster))
+
+library(caret)
+library(e1071)
+
+model1 <- train(Cluster~., data = Histdata.3, method = "knn",
+                preProcess = c("center", "scale"), tunelength = 20)
+model1
+
+Data2018_pred <- round(predict(model1, newdata = Data2018), digits = 0)
+confusionMatrix(factor(Data2018_pred, levels = 1:5), factor(Data2018$Cluster, levels = 1:5))
+
+Data2018_pred
+Data2018 <- cbind(Data2018, Pred_Cluster = Data2018_pred)
+
+
+
+
+
+write.xlsx(Data2018, "C:/Users/Brian/Desktop/BAN 888/Clustered Data6.xlsx")
